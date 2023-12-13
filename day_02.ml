@@ -4,7 +4,7 @@
 #use "day_02.ml";;
 *)
 
-type draw = {
+type cube_set = {
   red : int;
   green : int;
   blue : int
@@ -12,15 +12,15 @@ type draw = {
 
 type game = {
   id : int;
-  draws : draw list
+  draws : cube_set list
 };;
 
-let pp_draw out draw =
-  Format.fprintf out "r: %d g: %d b: %d" draw.red draw.green draw.blue
+let pp_cube_set out cs =
+  Format.fprintf out "r: %d g: %d b: %d" cs.red cs.green cs.blue
 ;;
 
 let pp_game out game =
-  Format.printf "%d: %a" game.id Format.(pp_print_list ~pp_sep:(fun out () -> fprintf out "; ") pp_draw) game.draws
+  Format.printf "%d: %a" game.id Format.(pp_print_list ~pp_sep:(fun out () -> fprintf out "; ") pp_cube_set) game.draws
 ;;
 
 let debug_game game =
@@ -66,11 +66,29 @@ let game_possible game =
   List.for_all draw_possible game.draws
 ;;
 
+let min_cube_set game =
+  let update acc draw =
+    { 
+      red = max acc.red draw.red;
+      green = max acc.green draw.green;
+      blue = max acc.blue draw.blue
+    }
+  in
+    List.fold_left update {red = 0; green = 0; blue = 0} game.draws
+;;
+
+let cube_set_power cs =
+  cs.red * cs.green * cs.blue
+;;
+
 let line_value line =
   let game = parse_game line
   in 
     (* debug_game game; *)
-    if game_possible game then game.id else 0
+    (* Part One: *)
+    (* if game_possible game then game.id else 0 *)
+    (* Part Two: *)
+    cube_set_power (min_cube_set game)
 ;;
 
 let rec process_lines f acc =
