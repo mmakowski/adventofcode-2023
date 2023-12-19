@@ -1,8 +1,4 @@
-(**
-#use "topfind";;
 #require "str";;
-#use "day_01.ml";;
-*)
 
 let digit search_fn str =
   let digit_regexp = Str.regexp {|[0-9]\|zero\|one\|two\|three\|four\|five\|six\|seven\|eight\|nine|} in

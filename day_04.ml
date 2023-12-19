@@ -1,8 +1,4 @@
-(**
-#use "topfind";;
 #require "str";;
-#use "day_04.ml";;
-*)
 
 module IntSet = Set.Make(Int);;
 

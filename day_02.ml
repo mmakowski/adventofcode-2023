@@ -1,8 +1,4 @@
-(**
-#use "topfind";;
-#require "str";;
-#use "day_02.ml";;
-*)
+#use "str";;
 
 type cube_set = {
   red : int;

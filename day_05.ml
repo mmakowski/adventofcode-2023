@@ -1,7 +1,3 @@
-(**
-#use "day_05.ml";;
-*)
-
 type entry = {
   src_start: int;
   dest_start: int;

@@ -1,8 +1,5 @@
-(**
-#use "topfind";;
 #require "str";;
-#use "day_03.ml";;
-*)
+
 type point = {
   x: int;
   y: int
