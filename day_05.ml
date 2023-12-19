@@ -11,15 +11,31 @@ module Entry = struct
     compare e1.src_start e2.src_start
 end;;
 
-let parse_nums str =
+type range = {
+  start: int;
+  length: int;
+};;
+
+module Range = struct
+  type t = range
+
+  let compare r1 r2 =
+    compare r1.start r2.start
+end;;
+
+let parse_ranges str =
   let num_strs = String.split_on_char ' ' str in
-  List.filter_map int_of_string_opt num_strs
+  let nums = List.filter_map int_of_string_opt num_strs in
+  let starts = List.filteri (fun i _ -> i mod 2 = 0) nums in
+  let lengths = List.filteri (fun i _ -> i mod 2 = 1) nums in
+  let mk_range start length = {start; length} in
+  List.map2 mk_range starts lengths
 ;;
 
 let parse_seeds f =
   let line = input_line f in
   match String.split_on_char ':' line with
-    | _ :: seed_nums :: [] -> parse_nums seed_nums;
+    | _ :: seed_nums :: [] -> parse_ranges seed_nums;
     | other -> invalid_arg line
 ;;
 
@@ -33,8 +49,28 @@ let parse_entry str =
     | other -> invalid_arg str
 ;;
 
+let rec fill_gaps start out = function
+  | [] -> let last_entry = {
+        src_start = start;
+        dest_start = start;
+        length = Int.max_int - start
+      } in List.rev (last_entry::out)
+  | h::t -> 
+      let next_start = h.src_start + h.length in
+      if start < h.src_start then
+        let filler = {
+          src_start = start;
+          dest_start = start;
+          length = h.src_start - start
+        } in 
+        let next_out = h::filler::out in
+        fill_gaps next_start next_out t
+      else
+        fill_gaps next_start (h::out) t
+;;
+
 let rec parse_map f map =
-  let sorted m = List.sort Entry.compare m in
+  let sorted m = fill_gaps 0 [] (List.sort Entry.compare m) in
   try
     let line = String.trim (input_line f) in
     if String.length line = 0 then
@@ -63,27 +99,61 @@ let parse_input f =
   seeds, maps
 ;;
 
-let rec apply_map src = function
-  | [] -> src;
-  | {src_start; dest_start; length} :: entries ->
-      if src < src_start then
-        src
-      else if src < src_start + length then
-        let offset = src - src_start in
-        dest_start + offset
-      else
-        apply_map src entries
+(** Splits r1 into 1) a range that overlaps r2 and 2) a range that starts right after r2. 
+    Assumption: r1.start >= r2.start.
+    *)
+let split_over r1 r2 =
+  if r2.start <= r1.start && r1.start < r2.start + r2.length then
+    let over_start = r1.start in
+    let over_length = min r1.length (r2.length - (r1.start - r2.start)) in
+    let overlap = Some {start = over_start; length = over_length} in
+    let remainder =
+      if over_length < r1.length then
+        let rem_start = r2.start + r2.length in
+        let rem_length = r1.length - over_length in
+        Some {start = rem_start; length = rem_length}
+      else 
+        None
+    in overlap, remainder 
+  else if r1.start >= r2.start + r2.length then
+    None, Some r1
+  else
+    invalid_arg "r1.start < r2.start"
 ;;
 
-let map_chain maps seed = 
-  List.fold_left apply_map seed maps
+let rec apply_map out src = function
+  | [] -> out;
+  | {src_start; dest_start; length} :: entries ->
+      let map_src_range = {start = src_start; length} in
+      let over, rem = split_over src map_src_range in
+      match over with
+        | None -> apply_map out src entries;
+        | Some {start = os; length = ol} ->
+            let offset = os - src_start in
+            let over_out = {
+              start = dest_start + offset;
+              length = ol
+            } in
+            let new_out = over_out::out in
+            match rem with
+              | None -> new_out;
+              | Some new_src -> apply_map new_out new_src entries
+;;
+
+let apply_map_ranges ranges map =
+  let apply_map_flip = Fun.flip (apply_map []) in
+  List.concat_map (apply_map_flip map) ranges
+;;
+
+let map_chain maps seeds = 
+  List.fold_left apply_map_ranges seeds maps
 ;;
 
 let result () = 
   let f = open_in "input-05.txt" in
   let seeds, maps = parse_input f in
-  let locs = List.map (map_chain maps) seeds in
-  List.fold_left min Int.max_int locs
+  let locs = map_chain maps seeds in
+  List.fold_left min {start = Int.max_int; length = 0} locs
 ;;
 
-Printf.printf "%d\n" (result ());;
+Printf.printf "%d\n" (result ()).start;;
