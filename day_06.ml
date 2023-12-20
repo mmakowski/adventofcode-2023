@@ -23,6 +23,26 @@ let parse_races f =
   List.map2 mk_race times dists
 ;;
 
+let parse_spaced_num_str str =
+  let num_strs = String.split_on_char ' ' str in
+  let num_str = String.concat "" num_strs in
+  int_of_string num_str
+;;
+
+let parse_spaced_num_line f =
+  let line = input_line f in
+  match String.split_on_char ':' line with
+    | _ :: num_str :: [] -> parse_spaced_num_str num_str;
+    | _ -> invalid_arg line
+;;
+
+let parse_race f =
+  let time = parse_spaced_num_line f in
+  let max_distance = parse_spaced_num_line f in
+  close_in_noerr f;
+  {time; max_distance}
+;;
+
 (**
   dist(t, p) = (t - p) * p = -p^2 + tp
 
@@ -62,7 +82,8 @@ let rec process_races acc = function
 
 let result () = 
   let f = open_in "input-06.txt" in
-  let races = parse_races f in
+  (* let races = parse_races f in *)
+  let races = [parse_race f] in
   process_races 1 races
 ;;
 
